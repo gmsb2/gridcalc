@@ -1059,8 +1059,15 @@ function ghostIsValid() {
   if (ghostBin.x < 0 || ghostBin.y < 0) return false;
   if (ghostBin.x + ghostBin.w > gs.cols + 0.001) return false;
   if (ghostBin.y + ghostBin.h > gs.effectiveRows + 0.001) return false;
-  // Integer-height bins: cannot straddle the rear ½-row boundary
-  if (Number.isInteger(ghostBin.h) && gs.hasRearHalf && ghostBin.y < 0.5 - 0.001) return false;
+  // Integer-height bins must align to row boundaries
+  if (Number.isInteger(ghostBin.h)) {
+    // With hasRearHalf: valid y positions are 0.5, 1.5, 2.5, … (i.e. y − 0.5 must be integer)
+    // Without hasRearHalf: valid y positions are 0, 1, 2, … (y must be integer)
+    const yOffset = gs.hasRearHalf ? 0.5 : 0;
+    if (!Number.isInteger(Math.round((ghostBin.y - yOffset) * 100) / 100)) return false;
+    // Also block the rear ½-row entirely (y < 0.5 only matters when hasRearHalf)
+    if (gs.hasRearHalf && ghostBin.y < 0.5 - 0.001) return false;
+  }
   // Integer-width + integer-height bins: x must be integer
   // (x.5-width bins may have integer OR half-integer x — that's the R vs L distinction)
   if (Number.isInteger(ghostBin.h) && Number.isInteger(ghostBin.w) && !Number.isInteger(Math.round(ghostBin.x * 100) / 100)) return false;
@@ -1240,9 +1247,16 @@ function onBinCanvasClick(e) {
   // x snaps to 0.5 steps for non-integer widths, integer steps for whole-width bins
   const xSnapMult = Number.isInteger(ghostBin.w) ? 1 : 2;
   const nx = Math.round((mx - ghostBin.w / 2) * xSnapMult) / xSnapMult;
-  const ny = Math.round((my - ghostBin.h / 2) * 2) / 2;
+  // y-snap: integer-height bins snap to row-aligned positions; x.5-height bins snap to 0.5
+  let ny;
+  if (Number.isInteger(ghostBin.h)) {
+    const yOff = gridState.hasRearHalf ? 0.5 : 0;
+    ny = Math.round(my - ghostBin.h / 2 - yOff) + yOff;
+  } else {
+    ny = Math.round((my - ghostBin.h / 2) * 2) / 2;
+  }
   ghostBin.x = Math.round(Math.max(0, Math.min(gridState.cols - ghostBin.w, nx)) * xSnapMult) / xSnapMult;
-  ghostBin.y = Math.round(Math.max(0, Math.min(gridState.effectiveRows - ghostBin.h, ny)) * 2) / 2;
+  ghostBin.y = Math.max(0, Math.min(gridState.effectiveRows - ghostBin.h, ny));
   updateGhostStatus();
   drawBinCanvas();
   document.getElementById('bin-canvas-wrap').focus();
@@ -1261,7 +1275,8 @@ function binLabel(w, h, x, y) {
   let wPart = `${w}`;
   let hPart = `${h}`;
   if (!Number.isInteger(w)) wPart = `${w}${isIntX(x) ? 'R' : 'L'}`;
-  if (!Number.isInteger(h)) hPart = `${h}${isIntX(y) ? 'F' : 'B'}`;
+  // Integer y = bin pushed toward Back (up); half-integer y = bin pushed toward Front (down)
+  if (!Number.isInteger(h)) hPart = `${h}${isIntX(y) ? 'B' : 'F'}`;
   return `${wPart}\u00d7${hPart}`;
 }
 
