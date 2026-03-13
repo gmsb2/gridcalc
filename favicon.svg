@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="6" fill="#0d1117"/>
+  <!-- Grid lines -->
+  <line x1="6" y1="6" x2="6" y2="26" stroke="#3a6ea8" stroke-width="1.2"/>
+  <line x1="13" y1="6" x2="13" y2="26" stroke="#3a6ea8" stroke-width="1.2"/>
+  <line x1="20" y1="6" x2="20" y2="26" stroke="#3a6ea8" stroke-width="1.2"/>
+  <line x1="27" y1="6" x2="27" y2="26" stroke="#3a6ea8" stroke-width="1.2"/>
+  <line x1="6" y1="6" x2="27" y2="6" stroke="#3a6ea8" stroke-width="1.2"/>
+  <line x1="6" y1="13" x2="27" y2="13" stroke="#3a6ea8" stroke-width="1.2"/>
+  <line x1="6" y1="20" x2="27" y2="20" stroke="#3a6ea8" stroke-width="1.2"/>
+  <line x1="6" y1="26" x2="27" y2="26" stroke="#3a6ea8" stroke-width="1.2"/>
+  <!-- Center cells (green) -->
+  <rect x="7" y="7" width="5.5" height="5.5" rx="0.5" fill="#0f2012"/>
+  <rect x="14" y="7" width="5.5" height="5.5" rx="0.5" fill="#0f2012"/>
+  <rect x="7" y="14" width="5.5" height="5.5" rx="0.5" fill="#0f2012"/>
+  <rect x="14" y="14" width="5.5" height="5.5" rx="0.5" fill="#0f2012"/>
+  <rect x="7" y="21" width="5.5" height="4.5" rx="0.5" fill="#0f2012"/>
+  <rect x="14" y="21" width="5.5" height="4.5" rx="0.5" fill="#0f2012"/>
+  <!-- Side trim cells (blue) -->
+  <rect x="21" y="7" width="5.5" height="5.5" rx="0.5" fill="#0a1c38"/>
+  <rect x="21" y="14" width="5.5" height="5.5" rx="0.5" fill="#0a1c38"/>
+  <rect x="21" y="21" width="5.5" height="4.5" rx="0.5" fill="#0a1c38"/>
+  <!-- Rear trim cells (amber) -->
+  <rect x="7" y="2" width="5.5" height="3.5" rx="0.5" fill="#241000"/>
+  <rect x="14" y="2" width="5.5" height="3.5" rx="0.5" fill="#241000"/>
+  <rect x="21" y="2" width="5.5" height="3.5" rx="0.5" fill="#241000"/>
+  <!-- Yellow zone boundary -->
+  <line x1="20" y1="6" x2="20" y2="26" stroke="#c9a227" stroke-width="1" stroke-dasharray="2,1.5"/>
+  <line x1="6" y1="6" x2="27" y2="6" stroke="#c9a227" stroke-width="1" stroke-dasharray="2,1.5"/>
+</svg>

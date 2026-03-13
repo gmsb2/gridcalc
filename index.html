@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GridCalc</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0d1117;
+      --surface: #161b22;
+      --border:  #30363d;
+      --text:    #e6edf3;
+      --muted:   #7d8590;
+      --green:   #3fb950;
+      --cyan:    #58a6ff;
+      --yellow:  #d29922;
+      --orange:  #f0883e;
+      --red:     #f85149;
+      --purple:  #bc8cff;
+      --radius:  8px;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; padding: 32px 16px;
+    }
+    h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+    h1 span { color: var(--green); }
+    .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
+      width: 100%; max-width: 600px; margin-bottom: 16px;
+    }
+    .section-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--muted); margin-bottom: 10px;
+    }
+    .preset-row { display: flex; gap: 8px; margin-bottom: 20px; }
+    .preset-btn {
+      flex: 1; padding: 10px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--muted); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all .15s; text-align: center;
+    }
+    .preset-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .preset-btn.active { background: #0d2137; border-color: var(--cyan); color: var(--cyan); }
+    .preset-btn .dim { font-size: 11px; font-weight: 400; color: var(--muted); display: block; margin-top: 2px; }
+    .preset-btn.active .dim { color: #5a9fd4; }
+    .grid-size-row { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 20px; }
+    .field-group { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+    .field-group label { font-size: 11px; color: var(--muted); font-weight: 500; }
+    input[type="text"], input[type="number"] {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 14px;
+      padding: 8px 10px; width: 100%; outline: none; transition: border-color .15s;
+    }
+    input:focus { border-color: var(--cyan); }
+    input::placeholder { color: var(--muted); }
+    .sym-toggle {
+      display: flex; align-items: center; gap: 6px; font-size: 12px;
+      color: var(--muted); cursor: pointer; padding-bottom: 9px;
+      white-space: nowrap; user-select: none;
+    }
+    .sym-toggle input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--cyan); cursor: pointer; }
+    .dim-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .unit-toggle { display: flex; gap: 6px; margin-bottom: 20px; }
+    .unit-btn {
+      padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 12px;
+      font-weight: 600; cursor: pointer; transition: all .15s;
+    }
+    .unit-btn.active { background: #0d2137; border-color: var(--cyan); color: var(--cyan); }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .calc-btn {
+      width: 100%; padding: 12px; background: #1a3a1a;
+      border: 1px solid #2d6a2d; border-radius: var(--radius);
+      color: var(--green); font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: background .15s;
+    }
+    .calc-btn:hover { background: #224a22; }
+    .results-card { display: none; width: 100%; max-width: 600px; }
+    .results-card.show { display: block; }
+    .results-summary {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+    }
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .result-box {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px;
+    }
+    .result-box .axis { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 8px; }
+    .result-box .big { font-size: 28px; font-weight: 700; color: var(--green); line-height: 1; }
+    .result-box .big span { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 3px; }
+    .result-box .sub-label { font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .result-box .sub-val { font-size: 20px; font-weight: 600; color: var(--orange); }
+    .result-box .sub-val span { font-size: 11px; font-weight: 400; color: var(--muted); }
+    .math-section { border-top: 1px solid var(--border); padding-top: 16px; }
+    .math-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 12px; }
+    .math-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .step { font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .step code { background: #0d1117; border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-family: 'SF Mono', monospace; font-size: 11px; color: var(--cyan); }
+    .step .highlight { color: var(--text); font-weight: 600; }
+    .step .result-val { color: var(--green); font-weight: 700; }
+    .step .edge-result { color: var(--orange); font-weight: 700; }
+    .canvas-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+    }
+    .canvas-wrap { overflow-x: auto; }
+    canvas { display: block; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+    .legend-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+    .pieces-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+    }
+    .piece-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .piece-table th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); padding: 0 0 8px; border-bottom: 1px solid var(--border); }
+    .piece-table td { padding: 7px 0; border-bottom: 1px solid #1c2128; vertical-align: middle; }
+    .piece-table tr:last-child td { border-bottom: none; }
+    .piece-swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+    .piece-dims { font-family: 'SF Mono', monospace; font-size: 12px; color: var(--cyan); }
+    .piece-qty { font-weight: 700; color: var(--text); text-align: right; }
+    .piece-total { font-weight: 700; color: var(--green); padding-top: 10px !important; border-top: 1px solid var(--border) !important; }
+    .error-msg {
+      background: #1a0000; border: 1px solid #5a0000; border-radius: 6px;
+      color: var(--red); padding: 10px 14px; font-size: 13px; margin-top: 12px; display: none;
+    }
+    .error-msg.show { display: block; }
+    .page-header { text-align: center; margin-bottom: 0; }
+    .layout {
+      display: flex; gap: 16px; width: 100%; max-width: 1160px;
+      align-items: flex-start;
+    }
+    .col-left  { flex: 0 0 380px; display: flex; flex-direction: column; gap: 16px; }
+    .col-right { flex: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .hidden { display: none !important; }
+
+    /* ── Tabs ── */
+    .tab-bar {
+      display: flex; gap: 4px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 4px; margin: 18px auto 28px; width: fit-content;
+    }
+    .tab {
+      padding: 8px 22px; border-radius: 7px; border: 1px solid transparent;
+      background: none; color: var(--muted); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: var(--bg); border-color: var(--border); color: var(--text); }
+
+    /* ── Bin Planner page ── */
+    .bin-layout {
+      display: flex; gap: 16px; width: 100%; max-width: 1400px; align-items: flex-start;
+    }
+    .bin-col-left  { flex: 0 0 300px; display: flex; flex-direction: column; gap: 14px; }
+    .bin-col-right { flex: 1; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+    .bin-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; width: 100%;
+    }
+    .bin-card .section-label { margin-bottom: 14px; }
+
+    /* Info banner */
+    .grid-banner {
+      background: #0d2137; border: 1px solid #1a3a5c;
+      border-radius: var(--radius); padding: 12px 16px;
+      display: flex; align-items: center; gap: 10px; font-size: 13px;
+    }
+    .grid-banner.warn { background: #1a1200; border-color: #3d2b00; color: var(--yellow); }
+
+    /* Bin entry */
+    .bin-dim-row { display: grid; grid-template-columns: 1fr 24px 1fr; gap: 6px;
+      align-items: end; margin-bottom: 14px; }
+    .bin-x-label { text-align: center; color: var(--muted); font-size: 16px;
+      padding-bottom: 10px; }
+
+    .add-btn {
+      width: 100%; padding: 10px; background: #0d2137;
+      border: 1px solid #1a3a5c; border-radius: var(--radius);
+      color: var(--cyan); font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: background .15s;
+    }
+    .add-btn:hover { background: #152a47; }
+    .add-btn:disabled { opacity: .4; cursor: default; }
+
+    /* Controls hint */
+    .kbd-hint {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px 12px; font-size: 11px; color: var(--muted);
+      margin-bottom: 12px; line-height: 1.7;
+    }
+    .kbd { display: inline-block; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 4px; padding: 1px 6px; font-family: monospace; font-size: 10px;
+      color: var(--text); }
+
+    .place-row { display: flex; gap: 8px; }
+    .place-btn {
+      flex: 1; padding: 9px; border-radius: 6px; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: background .15s; border: 1px solid;
+    }
+    .place-btn.confirm { background: #0d2a0d; border-color: #2d6a2d; color: var(--green); }
+    .place-btn.confirm:hover { background: #142e14; }
+    .place-btn.cancel  { background: var(--bg); border-color: var(--border); color: var(--muted); }
+    .place-btn.cancel:hover  { border-color: var(--red); color: var(--red); }
+
+    /* Success flash */
+    .placed-flash {
+      background: #0d2a0d; border: 1px solid #2d6a2d; border-radius: 6px;
+      padding: 8px 12px; font-size: 12px; color: var(--green);
+      display: none; text-align: center; font-weight: 600;
+    }
+
+    /* Bin log */
+    .bin-log-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .bin-log-table th { font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .6px; color: var(--muted); padding: 0 0 8px;
+      border-bottom: 1px solid var(--border); text-align: left; }
+    .bin-log-table td { padding: 6px 0; border-bottom: 1px solid #1c2128; vertical-align: middle; }
+    .bin-log-table tr:last-child td { border-bottom: none; }
+    .bin-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block;
+      margin-right: 6px; vertical-align: middle; flex-shrink: 0; }
+    .remove-btn { background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: 14px; padding: 2px 4px; border-radius: 3px; transition: color .1s; }
+    .remove-btn:hover { color: var(--red); }
+
+    /* Coverage bar */
+    .coverage-bar-wrap { background: var(--bg); border-radius: 4px; height: 6px;
+      margin-top: 12px; overflow: hidden; }
+    .coverage-bar-fill { background: var(--green); height: 100%; border-radius: 4px;
+      transition: width .3s; }
+    .coverage-label { font-size: 11px; color: var(--muted); margin-top: 5px;
+      display: flex; justify-content: space-between; }
+
+    /* Canvas card page 2 */
+    .bin-canvas-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .bin-canvas-wrap { overflow-x: auto; outline: none; }
+    #bin-canvas { display: block; cursor: crosshair; }
+    .canvas-hint {
+      font-size: 11px; color: var(--muted); margin-top: 10px;
+      display: flex; gap: 16px; flex-wrap: wrap;
+    }
+
+    @media (max-width: 900px) {
+      .bin-layout { flex-direction: column; }
+      .bin-col-left { flex: none; width: 100%; }
+    }
+    @media (max-width: 800px) {
+      .layout { flex-direction: column; }
+      .col-left  { flex: none; width: 100%; }
+      .col-right { width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .results-grid, .math-cols { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Grid<span>Calc</span></h1>
+  <div class="subtitle">Gridfinity layout calculator</div>
+  <div class="tab-bar">
+    <button class="tab active" id="tab-1" onclick="switchPage(1)">🧮 Calculator</button>
+    <button class="tab"        id="tab-2" onclick="switchPage(2)">📦 Bin Planner</button>
+  </div>
+</div>
+
+<!-- ══ PAGE 1 — Calculator ══════════════════════════════════════════════════ -->
+<div id="page-calc" class="page-content">
+<div class="layout">
+
+<div class="col-left">
+<div class="card">
+  <div class="section-label">Grid Size</div>
+  <div class="preset-row">
+    <button class="preset-btn active" id="preset-gf" onclick="setPreset('gridfinity')">
+      Gridfinity <span class="dim">50 × 50 mm</span>
+    </button>
+    <button class="preset-btn" id="preset-mb" onclick="setPreset('mbhome')">
+      MBHome <span class="dim">40 × 40 mm</span>
+    </button>
+    <button class="preset-btn" id="preset-cu" onclick="setPreset('custom')">
+      Custom <span class="dim">enter below</span>
+    </button>
+  </div>
+  <div class="grid-size-row">
+    <div class="field-group">
+      <label id="grid-x-label">Grid Size (mm)</label>
+      <input type="number" id="grid-x" value="50" min="1" step="0.1" oninput="onGridXChange()">
+    </div>
+    <label class="sym-toggle">
+      <input type="checkbox" id="sym-check" checked onchange="onSymChange()"> Symmetric
+    </label>
+    <div class="field-group" id="grid-y-group" style="display:none">
+      <label>Grid Depth (mm)</label>
+      <input type="number" id="grid-y" value="50" min="1" step="0.1">
+    </div>
+  </div>
+  <div class="section-label">Input Units</div>
+  <div class="unit-toggle">
+    <button class="unit-btn active" id="unit-in" onclick="setUnit('in')">Inches</button>
+    <button class="unit-btn" id="unit-mm" onclick="setUnit('mm')">mm</button>
+  </div>
+  <div class="dim-row">
+    <div class="field-group">
+      <label>Width</label>
+      <input type="text" id="input-w" placeholder='e.g. 13 1/16' oninput="clearResults()">
+      <div class="hint" id="hint-w"></div>
+    </div>
+    <div class="field-group">
+      <label>Height (depth)</label>
+      <input type="text" id="input-h" placeholder='e.g. 19 1/2' oninput="clearResults()">
+      <div class="hint" id="hint-h"></div>
+    </div>
+  </div>
+  <div class="error-msg" id="error-msg"></div>
+  <button class="calc-btn" onclick="calculate()">Calculate</button>
+</div>
+
+<!-- Results summary — left column -->
+<div class="card hidden" id="results-summary">
+  <div class="section-label" style="margin-bottom:16px">Results</div>
+  <div class="results-grid">
+    <div class="result-box">
+      <div class="axis">Width</div>
+      <div class="big" id="res-w-full">—<span>grids</span></div>
+      <div class="sub-label" id="res-w-sub-label">edge gap (each side)</div>
+      <div class="sub-val" id="res-w-edge">—<span> mm</span></div>
+    </div>
+    <div class="result-box">
+      <div class="axis">Height / Depth</div>
+      <div class="big" id="res-h-full">—<span>grids</span></div>
+      <div class="sub-label" id="res-h-sub-label">rear gap</div>
+      <div class="sub-val" id="res-h-edge">—<span> mm</span></div>
+    </div>
+  </div>
+  <div class="math-section">
+    <div class="math-title">Math Breakdown</div>
+    <div class="math-cols">
+      <div id="math-w"></div>
+      <div id="math-h"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /col-left -->
+
+<div class="col-right">
+  <div class="canvas-card hidden" id="canvas-card">
+    <div class="section-label" style="margin-bottom:14px">Grid Layout — rear at top, front at bottom</div>
+    <div class="canvas-wrap">
+      <canvas id="grid-canvas"></canvas>
+    </div>
+    <div class="legend" id="grid-legend"></div>
+  </div>
+  <div class="pieces-card hidden" id="pieces-card">
+    <div class="section-label" style="margin-bottom:14px">Print Pieces</div>
+    <table class="piece-table" id="piece-table">
+      <thead><tr>
+        <th style="width:32%">Type</th>
+        <th>Dimensions</th>
+        <th style="text-align:right">Wide</th>
+        <th style="text-align:right">High</th>
+        <th style="text-align:right">Qty</th>
+      </tr></thead>
+      <tbody id="piece-tbody"></tbody>
+    </table>
+  </div>
+</div><!-- /col-right -->
+</div><!-- /layout -->
+</div><!-- /page-calc -->
+
+<!-- ══ PAGE 2 — Bin Planner ═════════════════════════════════════════════════ -->
+<div id="page-bin" class="page-content" style="display:none">
+<div class="bin-layout">
+
+  <!-- Left: controls -->
+  <div class="bin-col-left">
+
+    <!-- Grid info -->
+    <div id="bin-grid-banner" class="grid-banner warn">
+      ⚠️ Calculate a grid on the Calculator tab first.
+    </div>
+
+    <!-- Bin entry form -->
+    <div class="bin-card" id="bin-form-card" style="display:none">
+      <div class="section-label">New Bin</div>
+
+      <div class="bin-dim-row">
+        <div class="field-group">
+          <label>Width (grid units)</label>
+          <input type="number" id="bin-w" placeholder="e.g. 2" min="0.5" step="0.5"
+            oninput="onBinDimChange()">
+        </div>
+        <div class="bin-x-label">×</div>
+        <div class="field-group">
+          <label>Height (grid units)</label>
+          <input type="number" id="bin-h" placeholder="e.g. 6" min="0.5" step="0.5"
+            oninput="onBinDimChange()">
+        </div>
+      </div>
+      <div class="hint" id="bin-size-hint" style="margin-bottom:12px"></div>
+
+      <button class="add-btn" id="bin-add-btn" onclick="addGhostBin()">Add to Grid →</button>
+
+      <!-- Placed flash -->
+      <div class="placed-flash" id="bin-placed-flash"></div>
+
+      <!-- Arrow key controls (shown when ghost is active) -->
+      <div id="bin-controls" style="display:none;margin-top:14px">
+        <div class="kbd-hint">
+          <kbd class="kbd">← → ↑ ↓</kbd> Move &nbsp;·&nbsp;
+          <kbd class="kbd">Shift</kbd>+arrow = 1 unit<br>
+          <kbd class="kbd">Enter</kbd> Place &nbsp;·&nbsp;
+          <kbd class="kbd">Esc</kbd> Cancel
+        </div>
+        <div class="place-row">
+          <button class="place-btn confirm" onclick="placeBin()">✓ Place</button>
+          <button class="place-btn cancel"  onclick="cancelGhost()">✕ Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bin log -->
+    <div class="bin-card" id="bin-log-card" style="display:none">
+      <div style="display:flex;align-items:center;margin-bottom:14px">
+        <div class="section-label" style="margin:0;flex:1">Placed Bins</div>
+        <button onclick="clearAllBins()"
+          style="font-size:11px;padding:3px 10px;background:var(--bg);border:1px solid var(--border);
+            color:var(--muted);border-radius:5px;cursor:pointer">
+          Clear All
+        </button>
+      </div>
+
+      <div id="bin-log-empty" style="color:var(--muted);font-size:13px;padding:8px 0">
+        No bins placed yet.
+      </div>
+
+      <table class="bin-log-table" id="bin-log-table" style="display:none">
+        <thead><tr>
+          <th>#</th>
+          <th>Size</th>
+          <th>Position</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="bin-log-tbody"></tbody>
+      </table>
+
+      <!-- Coverage -->
+      <div id="bin-coverage" style="display:none;margin-top:14px">
+        <div class="coverage-bar-wrap">
+          <div class="coverage-bar-fill" id="coverage-fill" style="width:0%"></div>
+        </div>
+        <div class="coverage-label">
+          <span id="coverage-text">0% coverage</span>
+          <span id="coverage-detail"></span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /bin-col-left -->
+
+  <!-- Right: canvas -->
+  <div class="bin-col-right">
+    <div class="bin-canvas-card">
+      <div style="display:flex;align-items:center;margin-bottom:14px;gap:10px">
+        <div class="section-label" style="margin:0;flex:1">Bin Layout</div>
+        <div id="bin-ghost-status" style="font-size:12px;font-weight:600;display:none"></div>
+      </div>
+      <div class="bin-canvas-wrap" id="bin-canvas-wrap" tabindex="0"
+        onclick="onBinCanvasClick(event)"
+        ondblclick="onBinCanvasDblClick(event)">
+        <canvas id="bin-canvas"></canvas>
+      </div>
+      <div class="canvas-hint">
+        <span>🖱 Click to position ghost bin &nbsp;·&nbsp; Double-click to place</span>
+        <span id="hint-ghost-pos" style="color:var(--cyan)"></span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /bin-layout -->
+</div><!-- /page-bin -->
+
+<script>
+'use strict';
+// ══════════════════════════════════════════════════════════════════════════════
+// PAGE 1 — Calculator
+// ══════════════════════════════════════════════════════════════════════════════
+let currentUnit = 'in';
+let gridState   = null;  // set after a successful calculate() with both dims
+
+function setPreset(p) {
+  ['gf','mb','cu'].forEach(id => document.getElementById('preset-'+id).classList.remove('active'));
+  document.getElementById('preset-'+{gridfinity:'gf',mbhome:'mb',custom:'cu'}[p]).classList.add('active');
+  if (p === 'gridfinity') { document.getElementById('grid-x').value = 50; document.getElementById('grid-y').value = 50; }
+  else if (p === 'mbhome')  { document.getElementById('grid-x').value = 40; document.getElementById('grid-y').value = 40; }
+  clearResults();
+}
+function onGridXChange() {
+  if (document.getElementById('sym-check').checked)
+    document.getElementById('grid-y').value = document.getElementById('grid-x').value;
+  clearResults();
+}
+function onSymChange() {
+  const sym = document.getElementById('sym-check').checked;
+  document.getElementById('grid-y-group').style.display = sym ? 'none' : 'flex';
+  document.getElementById('grid-x-label').textContent = sym ? 'Grid Size (mm)' : 'Grid Width (mm)';
+  if (sym) document.getElementById('grid-y').value = document.getElementById('grid-x').value;
+  clearResults();
+}
+function setUnit(u) {
+  currentUnit = u;
+  document.getElementById('unit-in').classList.toggle('active', u === 'in');
+  document.getElementById('unit-mm').classList.toggle('active', u === 'mm');
+  const ph = u === 'in' ? 'e.g. 13 1/16' : 'e.g. 331';
+  document.getElementById('input-w').placeholder = ph;
+  document.getElementById('input-h').placeholder = u === 'in' ? 'e.g. 19 1/2' : 'e.g. 495';
+  clearResults();
+}
+function parseInput(raw) {
+  raw = raw.trim();
+  if (!raw) return { value: null, error: null };
+  let cleaned = raw.replace(/"+$/, '').replace(/\s*mm\s*$/i, '').trim();
+  if (/[^0-9 ./\-]/.test(cleaned))
+    return { value: null, error: `Unexpected characters in "${raw}" — use digits, fractions (1/16), or decimals` };
+  const frac = cleaned.match(/^(\d+)?\s*(\d+)\/(\d+)$/);
+  if (frac) {
+    const den = parseFloat(frac[3]);
+    if (den === 0) return { value: null, error: 'Division by zero in fraction' };
+    return { value: parseFloat(frac[1]||'0') + parseFloat(frac[2])/den, error: null };
+  }
+  const val = parseFloat(cleaned);
+  if (isNaN(val)) return { value: null, error: `Could not parse "${raw}" — try: 13 1/16, 13.5, or 330` };
+  return { value: val, error: null };
+}
+function toMM(v) { return currentUnit === 'in' ? v * 25.4 : v; }
+function calcAxis(rawInput, gridMM, mode) {
+  const { value: parsed, error } = parseInput(rawInput);
+  if (error) return { error };
+  if (parsed === null) return null;
+  const mm_exact = toMM(parsed);
+  const mm_floor = Math.floor(mm_exact);
+  let fullGrids = Math.floor(mm_floor / gridMM);
+  const remainder = mm_floor - fullGrids * gridMM;
+
+  // Rule: remainder must never exceed half a grid cell.
+  // If it does, round up by one grid — the excess becomes a trim instead of a gap.
+  const roundedUp = remainder > gridMM / 2;
+  if (roundedUp) fullGrids += 1;
+
+  if (mode === 'width') {
+    let edgeMM;
+    if (roundedUp) {
+      // Total overhang = fullGrids*gridMM − mm_floor; split evenly both sides (negative = trim)
+      const excess = fullGrids * gridMM - mm_floor;
+      edgeMM = -Math.floor(excess / 2);   // negative → trim per side
+    } else {
+      edgeMM = Math.floor(remainder / 2); // positive → gap per side
+    }
+    return { parsed, mm_exact, mm_floor, fullGrids, remainder, edgeMM, gridMM, mode, roundedUp };
+  } else {
+    let rearMM;
+    if (roundedUp) {
+      const excess = fullGrids * gridMM - mm_floor;
+      rearMM = -excess; // negative → trim from rear piece
+    } else {
+      rearMM = remainder; // positive → gap at rear
+    }
+    return { parsed, mm_exact, mm_floor, fullGrids, remainder, rearMM, gridMM, mode, roundedUp };
+  }
+}
+function renderMath(el, label, r) {
+  const isIn = currentUnit === 'in';
+  const steps = [];
+  // Before-rounding grid count (fullGrids already adjusted, so recompute base)
+  const baseGrids = r.roundedUp ? r.fullGrids - 1 : r.fullGrids;
+  if (isIn) {
+    steps.push(`<div class="step"><b>${label}:</b> <code>${r.parsed % 1 === 0 ? r.parsed + '"' : r.parsed.toFixed(4) + '"'}</code> × 25.4 = <code>${r.mm_exact.toFixed(4)} mm</code></div>`);
+    steps.push(`<div class="step">Floor → <span class="highlight">${r.mm_floor} mm</span></div>`);
+  } else {
+    steps.push(`<div class="step"><b>${label}:</b> <code>${r.parsed} mm</code> → floor → <span class="highlight">${r.mm_floor} mm</span></div>`);
+  }
+  steps.push(`<div class="step">${r.mm_floor} ÷ ${r.gridMM} = <code>${(r.mm_floor/r.gridMM).toFixed(3)}</code> → ${baseGrids} full grid${baseGrids!==1?'s':''}</div>`);
+  steps.push(`<div class="step">Remainder: <code>${r.mm_floor} − (${baseGrids}×${r.gridMM}) = ${r.remainder} mm</code></div>`);
+  if (r.roundedUp) {
+    const half = r.gridMM / 2;
+    steps.push(`<div class="step" style="color:var(--yellow)">⬆ ${r.remainder} mm &gt; ½ grid (${half} mm) → round up to <span class="result-val">${r.fullGrids} grids</span></div>`);
+    const excess = r.fullGrids * r.gridMM - r.mm_floor;
+    if (r.mode === 'width') {
+      steps.push(`<div class="step">Trim: <code>${r.fullGrids}×${r.gridMM} − ${r.mm_floor} = ${excess} mm</code> → <span class="edge-result">${Math.floor(excess/2)} mm trim per side</span></div>`);
+    } else {
+      steps.push(`<div class="step">Trim: <code>${r.fullGrids}×${r.gridMM} − ${r.mm_floor} = ${excess} mm</code> → <span class="edge-result">${excess} mm trim from rear piece</span></div>`);
+    }
+  } else {
+    if (r.mode === 'width') {
+      steps.push(`<div class="step">${r.remainder} mm ≤ ½ grid (${r.gridMM/2} mm) → keep ${r.fullGrids} grids</div>`);
+      steps.push(`<div class="step">Edge gap: <code>${r.remainder} ÷ 2 = ${(r.remainder/2).toFixed(1)}</code> → floor → <span class="edge-result">${r.edgeMM} mm per side</span></div>`);
+    } else {
+      steps.push(`<div class="step">${r.remainder} mm ≤ ½ grid (${r.gridMM/2} mm) → keep ${r.fullGrids} rows</div>`);
+      steps.push(`<div class="step">Rear gap: <code>${r.remainder} mm</code> → <span class="edge-result">${r.rearMM} mm</span></div>`);
+    }
+  }
+  el.innerHTML = steps.join('');
+}
+function drawGrid(rw, rh) {
+  const canvas = document.getElementById('grid-canvas');
+  const ctx    = canvas.getContext('2d');
+  const dpr    = window.devicePixelRatio || 1;
+  const gx = rw.gridMM, gy = rh.gridMM;
+  const eW = rw.edgeMM, rM = rh.rearMM;
+  const cols = rw.fullGrids, rows = rh.fullGrids;
+  const hasSide = eW !== 0, hasRear = rM !== 0;
+  const drawW = 2 * eW + cols * gx;
+  const drawH = rows * gy + rM;
+  const LPAD = 58, TPAD = 32, RPAD = 20, BPAD = 20;
+  const wrap  = document.querySelector('.canvas-wrap');
+  const maxW  = Math.min(800, wrap.offsetWidth || 560);
+  const scale = Math.min((maxW - LPAD - RPAD) / drawW, 520 / drawH);
+  const cw = drawW * scale + LPAD + RPAD;
+  const ch = drawH * scale + TPAD + BPAD;
+  canvas.width  = cw * dpr; canvas.height = ch * dpr;
+  canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
+  ctx.scale(dpr, dpr);
+  const ox = LPAD, oy = TPAD;
+  const X  = mm => ox + mm * scale;
+  const Y  = mm => oy + mm * scale;
+  const SW = mm => mm * scale;
+  const SH = mm => mm * scale;
+  ctx.clearRect(0, 0, cw, ch);
+  ctx.fillStyle = '#080c10';
+  ctx.fillRect(X(0), Y(0), SW(drawW), SH(drawH));
+  // Center = dark green. Side/rear trim = distinct colors (blue / amber).
+  // Gap-case outer cells are full-size → inside zone boundary → dark green.
+  // Trim-case outer cells are smaller → shown in their trim color.
+  const PC = { center:'#0f2012', side:'#0a1c38', rear:'#241000', corner:'#140820' };
+  // Gap strip zones (empty space) colored to match their trim type
+  const SIDE_GAP_COLOR = '#0c1e3c';
+  const REAR_GAP_COLOR = '#261200';
+  const GAP = 1;
+  function piece(mmx, mmy, mmw, mmh, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(X(mmx)+GAP, Y(mmy)+GAP, SW(mmw)-GAP*2, SH(mmh)-GAP*2);
+  }
+
+  // ── Draw gap/trim strip zones first ──────────────────────────────────────
+  if (hasSide && eW > 0) {
+    ctx.fillStyle = SIDE_GAP_COLOR;
+    ctx.fillRect(X(0)+GAP,        Y(0)+GAP, SW(eW)-GAP,   SH(drawH)-GAP*2);
+    ctx.fillRect(X(drawW-eW)+GAP, Y(0)+GAP, SW(eW)-GAP,   SH(drawH)-GAP*2);
+  }
+  if (hasRear && rM > 0) {
+    ctx.fillStyle = REAR_GAP_COLOR;
+    ctx.fillRect(X(0)+GAP, Y(0)+GAP, SW(drawW)-GAP*2, SH(rM)-GAP);
+  }
+
+  // ── Draw grid cells ───────────────────────────────────────────────────────
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows; r++) {
+      const isL = c === 0 && hasSide, isR = c === cols-1 && hasSide;
+      const isBk = r === rows-1 && hasRear, isSide = isL || isR;
+
+      let px0, pw;
+      if (eW >= 0) {
+        px0 = eW + c * gx;
+        pw  = gx;
+      } else {
+        px0 = isL ? 0 : isR ? eW + (cols-1)*gx : eW + c*gx;
+        pw  = isSide ? gx + eW : gx;
+      }
+
+      let py0, ph;
+      if (rM >= 0) {
+        py0 = rM + (rows-1-r) * gy;
+        ph  = gy;
+      } else {
+        if (isBk) { py0 = 0; ph = gy + rM; }
+        else       { py0 = rM + (rows-1-r) * gy; ph = gy; }
+      }
+
+      // Gap-case outer cells are full-size → inside zone boundary → dark green.
+      // Trim-case outer cells are narrower/shorter → their trim color.
+      const gapSide = eW > 0, gapRear = rM > 0;
+      const color = (!isSide && !isBk) ? PC.center
+        : (isSide && isBk) ? (gapSide && gapRear ? PC.center
+                              : gapSide ? PC.rear
+                              : gapRear ? PC.side
+                              : PC.corner)
+        : isSide ? (gapSide ? PC.center : PC.side)
+        : isBk   ? (gapRear ? PC.center : PC.rear)
+        : PC.center;
+      piece(px0, py0, pw, ph, color);
+
+      // Hint line: trim case only — show the cut boundary within the outer cell
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 0.5; ctx.setLineDash([2,4]);
+      if (isSide && eW < 0 && Math.abs(SW(eW)) > 4) {
+        const sx = isL ? X(gx + eW) : X(eW + (cols-1)*gx);
+        ctx.beginPath(); ctx.moveTo(sx, Y(py0)); ctx.lineTo(sx, Y(py0+ph)); ctx.stroke();
+      }
+      if (isBk && rM < 0 && Math.abs(SH(rM)) > 4) {
+        const ty = gy + rM;  // trim boundary within back cell
+        ctx.beginPath(); ctx.moveTo(X(px0), Y(ty)); ctx.lineTo(X(px0+pw), Y(ty)); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+  }
+  ctx.strokeStyle = 'rgba(80,100,120,0.5)'; ctx.lineWidth = 0.5;
+  for (let k = 1; k < rows; k++) {
+    const y = rM+k*gy;
+    ctx.beginPath(); ctx.moveTo(X(0), Y(y)); ctx.lineTo(X(drawW), Y(y)); ctx.stroke();
+  }
+  for (let c = 2; c < cols-1; c++) {
+    const x = eW+c*gx;
+    ctx.beginPath(); ctx.moveTo(X(x), Y(0)); ctx.lineTo(X(x), Y(drawH)); ctx.stroke();
+  }
+  if (hasSide) {
+    [eW+gx, eW+(cols-1)*gx].forEach(x => {
+      ctx.strokeStyle = 'rgba(60,80,100,0.5)';
+      ctx.beginPath(); ctx.moveTo(X(x), Y(0)); ctx.lineTo(X(x), Y(drawH)); ctx.stroke();
+    });
+  }
+  ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 1.5; ctx.setLineDash([5,3]);
+  // Yellow boundary: outer edge of ALL grid pieces (gap strips sit outside it)
+  // For trim, outer boundary = canvas edge (already shown by blue border — skip)
+  if (hasSide && eW > 0) {
+    ctx.beginPath(); ctx.moveTo(X(eW),        Y(0));     ctx.lineTo(X(eW),        Y(drawH)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X(drawW - eW), Y(0));    ctx.lineTo(X(drawW - eW), Y(drawH)); ctx.stroke();
+  }
+  if (hasRear && rM > 0) {
+    ctx.beginPath(); ctx.moveTo(X(0), Y(rM)); ctx.lineTo(X(drawW), Y(rM)); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.strokeStyle = '#3a6ea8'; ctx.lineWidth = 2;
+  ctx.strokeRect(X(0), Y(0), SW(drawW), SH(drawH));
+  const fs = Math.max(9, Math.min(11, scale*5));
+  ctx.font = `${fs}px -apple-system, sans-serif`;
+  ctx.fillStyle = '#5a8fc0'; ctx.textAlign = 'center';
+  ctx.fillText(`${drawW} mm`, X(drawW/2), oy-14);
+  ctx.save(); ctx.translate(ox-16, Y(drawH/2)); ctx.rotate(-Math.PI/2);
+  ctx.fillText(`${drawH} mm`, 0, 0); ctx.restore();
+  ctx.fillStyle = '#506070'; ctx.font = `${fs-1}px -apple-system, sans-serif`;
+  // Width: show edge gap/trim as its own strip, then ALL full grids together as one span
+  ctx.textAlign = 'center';
+  if (hasSide) {
+    const absEdge = Math.abs(eW);
+    const eTag = rw.roundedUp ? '✂' : '';
+    if (SW(absEdge) > 10) ctx.fillText(`${absEdge}${eTag}`, X(absEdge / 2), oy - 4);
+    if (SW(cols * gx) > 20) ctx.fillText(`${cols}×${gx}`, X(drawW / 2), oy - 4);
+    if (SW(absEdge) > 10) ctx.fillText(`${absEdge}${eTag}`, X(drawW - absEdge / 2), oy - 4);
+  } else {
+    if (cols > 1 && SW(cols * gx) > 20) ctx.fillText(`${cols}×${gx}`, X(drawW / 2), oy - 4);
+  }
+  // Height: show rear gap/trim as its own strip, then ALL full rows together as one span
+  ctx.textAlign = 'right';
+  if (hasRear) {
+    const absRear = Math.abs(rM);
+    const rTag = rh.roundedUp ? '✂' : '';
+    // For trim (rM<0): label inside the trimmed rear piece near the rear wall; for gap: in the gap strip
+    const stripLabelY = rh.roundedUp ? Y(absRear / 2) : Y(rM / 2);
+    if (Math.abs(SH(rM)) > 10) ctx.fillText(`${absRear}mm${rTag}`, X(0) - 4, stripLabelY + 4);
+  }
+  // All rows together — center below gap strip (if any); for trim or no rear: center of canvas height
+  const rowsLabelY = (hasRear && !rh.roundedUp) ? Y(rM + rows * gy / 2) : Y(drawH / 2);
+  if (rows > 0 && SH(gy) > 10) ctx.fillText(`${rows}×${gy}mm`, X(0) - 4, rowsLabelY + 4);
+  ctx.fillStyle = '#3a4a5a'; ctx.textAlign = 'left'; ctx.font = `bold ${fs}px -apple-system, sans-serif`;
+  ctx.fillText('◀ REAR', X(drawW)+4, Y(0)+fs);
+  ctx.fillText('◀ FRONT', X(drawW)+4, Y(drawH));
+  if (cols > 2 && rows > 1) {
+    const cx2 = eW+gx+(cols-2)*gx/2, cy2 = rM+gy+(rows-1)*gy/2;
+    ctx.fillStyle = '#3fb95070'; ctx.textAlign = 'center';
+    ctx.font = `bold ${fs+1}px -apple-system, sans-serif`;
+    ctx.fillText(`${cols-2} × ${rows-1}`, X(cx2), Y(cy2)+2);
+    ctx.font = `${fs}px -apple-system, sans-serif`;
+    ctx.fillStyle = '#3fb95050';
+    ctx.fillText('center grids', X(cx2), Y(cy2)+fs+5);
+  }
+  const legendEl = document.getElementById('grid-legend');
+  const sideTrimW = eW > 0 ? eW : gx + eW;   // gap strip width OR trimmed piece width
+  const rearTrimH = rM > 0 ? rM : gy + rM;   // gap strip height OR trimmed piece height
+  const trimTag   = s => s ? ' ✂' : '';
+  const LGAP_C = eW > 0 ? '#0c1e3c' : PC.side;  // legend: gap strip vs trimmed piece color
+  const RGAP_C = rM > 0 ? '#261200' : PC.rear;
+  legendEl.innerHTML = [
+    { color: PC.center, label: `Center  ${gx}×${gy} mm` },
+    ...(hasSide ? [{ color: LGAP_C, label: `Side Trim${trimTag(rw.roundedUp)}  ${sideTrimW}×${gy} mm` }] : []),
+    ...(hasRear ? [{ color: RGAP_C, label: `Rear Trim${trimTag(rh.roundedUp)}  ${gx}×${rearTrimH} mm` }] : []),
+    { color: 'transparent', label: '— — —  zone boundary', border: '#c9a227' },
+  ].map(i => `<div class="legend-item">
+    <div class="legend-swatch" style="background:${i.color};border-color:${i.border||'rgba(255,255,255,0.15)'}"></div>
+    <span>${i.label}</span></div>`).join('');
+}
+function renderPieces(rw, rh) {
+  const gridX = rw.gridMM, gridY = rh.gridMM;
+  const edgeW = rw.edgeMM, rearMM = rh.rearMM;
+  const cols = rw.fullGrids, rows = rh.fullGrids;
+  const hasSide = edgeW !== 0, hasRear = rearMM !== 0;
+  const PC = { center:'#0f2012', side:'#0a1c38', rear:'#241000' };
+
+  // Center: all full gx×gy cells.
+  // Gap → outer cols/rows are full-size → include in center.
+  // Trim → outer cols/rows are smaller → they are Side/Rear Trim.
+  const cCols = hasSide && edgeW < 0 ? cols - 2 : cols;
+  const cRows = hasRear && rearMM < 0 ? rows - 1 : rows;
+
+  // Side trim piece width (gap strip OR trimmed piece, no adjacent full grid)
+  const sidePieceW = edgeW > 0 ? edgeW : gridX + edgeW;
+
+  // Rear trim piece height (gap strip OR trimmed piece height — always "Rear Trim")
+  const rearPieceH = rearMM > 0 ? rearMM : gridY + rearMM;  // gap strip height or trimmed height
+
+  // mm helper
+  const mm = v => `${v}<span class="unit">mm</span>`;
+
+  const pieces = [];
+
+  // 1. Center — full gx×gy pieces; Wide and High both in piece counts
+  if (cCols > 0 && cRows > 0) pieces.push({
+    type: 'Center', color: PC.center,
+    secW: cCols * gridX, secH: cRows * gridY,
+    wide: cCols, high: cRows, qty: cCols * cRows,
+  });
+
+  // 2. Rear Trim — always this label (gap filler OR trimmed rear row)
+  //    Wide = full grid count, High = mm (actual piece height)
+  if (hasRear && cCols > 0) pieces.push({
+    type: `Rear Trim${rh.roundedUp ? ' ✂' : ''}`, color: PC.rear,
+    secW: cCols * gridX, secH: rearPieceH,
+    wide: cCols, high: mm(rearPieceH), qty: cCols,
+  });
+
+  // 3. Side Trim (×2) — Wide = mm (piece width), High = full grid count
+  if (hasSide && cRows > 0) pieces.push({
+    type: `Side Trim${rw.roundedUp ? ' ✂' : ''} (×2)`, color: PC.side,
+    secW: sidePieceW, secH: cRows * gridY,
+    wide: mm(sidePieceW), high: cRows, qty: cRows * 2,
+  });
+
+  const total = pieces.reduce((s, p) => s + p.qty, 0);
+  const tbody = document.getElementById('piece-tbody');
+  tbody.innerHTML = pieces.map(p => `
+    <tr>
+      <td><span class="piece-swatch" style="background:${p.color}"></span>${p.type}</td>
+      <td class="piece-dims">${p.secW} × ${p.secH} <span class="unit">mm</span></td>
+      <td class="piece-qty">${p.wide}</td>
+      <td class="piece-qty">${p.high}</td>
+      <td class="piece-qty">${p.qty}</td>
+    </tr>`).join('') + `
+    <tr>
+      <td class="piece-total" colspan="4">Total pieces</td>
+      <td class="piece-qty piece-total">${total}</td>
+    </tr>`;
+}
+function calculate() {
+  const errEl = document.getElementById('error-msg');
+  errEl.classList.remove('show');
+  const gridX = parseFloat(document.getElementById('grid-x').value);
+  const gridY = document.getElementById('sym-check').checked ? gridX : parseFloat(document.getElementById('grid-y').value);
+  if (!gridX || gridX <= 0 || !gridY || gridY <= 0) { showError('Grid size must be greater than 0.'); return; }
+  const rw = calcAxis(document.getElementById('input-w').value, gridX, 'width');
+  const rh = calcAxis(document.getElementById('input-h').value, gridY, 'height');
+  if (rw && rw.error) { showError('Width: ' + rw.error); return; }
+  if (rh && rh.error) { showError('Height: ' + rh.error); return; }
+  if (!rw && !rh) { showError('Enter at least one dimension.'); return; }
+  ['results-summary','canvas-card','pieces-card'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+  if (rw) {
+    document.getElementById('res-w-full').innerHTML = `${rw.fullGrids}<span> grids</span>`;
+    const wVal = Math.abs(rw.edgeMM);
+    if (rw.roundedUp) {
+      document.getElementById('res-w-sub-label').textContent = '✂ trim per side (rounded up)';
+      document.getElementById('res-w-edge').innerHTML = `${wVal}<span> mm</span>`;
+      document.getElementById('res-w-edge').style.color = 'var(--yellow)';
+    } else {
+      document.getElementById('res-w-sub-label').textContent = 'edge gap (each side)';
+      document.getElementById('res-w-edge').innerHTML = `${wVal}<span> mm</span>`;
+      document.getElementById('res-w-edge').style.color = '';
+    }
+    renderMath(document.getElementById('math-w'), 'Width', rw);
+    document.getElementById('hint-w').textContent = currentUnit === 'in' ? `= ${rw.mm_exact.toFixed(2)} mm` : '';
+  }
+  if (rh) {
+    document.getElementById('res-h-full').innerHTML = `${rh.fullGrids}<span> grids</span>`;
+    const hVal = Math.abs(rh.rearMM);
+    if (rh.roundedUp) {
+      document.getElementById('res-h-sub-label').textContent = '✂ trim from rear piece (rounded up)';
+      document.getElementById('res-h-edge').innerHTML = `${hVal}<span> mm</span>`;
+      document.getElementById('res-h-edge').style.color = 'var(--yellow)';
+    } else {
+      document.getElementById('res-h-sub-label').textContent = 'rear gap';
+      document.getElementById('res-h-edge').innerHTML = `${hVal}<span> mm</span>`;
+      document.getElementById('res-h-edge').style.color = '';
+    }
+    renderMath(document.getElementById('math-h'), 'Height', rh);
+    document.getElementById('hint-h').textContent = currentUnit === 'in' ? `= ${rh.mm_exact.toFixed(2)} mm` : '';
+  }
+  // Store grid state for Bin Planner (needs both dims)
+  if (rw && rh && rw.fullGrids > 0 && rh.fullGrids > 0) {
+    // hasRearHalf: rounded-up height means the rear row is trimmed but ≥ ½ grid tall,
+    // so a ½-height bin can sit there. effectiveRows accounts for this.
+    const hasRearHalf = rh.roundedUp;
+    gridState = {
+      cols:         rw.fullGrids,
+      rows:         rh.fullGrids,          // raw baseplate row count
+      effectiveRows: hasRearHalf ? rh.fullGrids - 0.5 : rh.fullGrids,
+      hasRearHalf,
+      gridX:        rw.gridMM,
+      gridY:        rh.gridMM,
+      edgeMM:       rw.edgeMM,  // positive = gap per side, negative = trim per side
+      rearMM:       rh.rearMM,  // positive = gap at rear, negative = trim from rear
+      rw, rh,
+    };
+    document.getElementById('tab-2').textContent = `📦 Bin Planner  ✓`;
+  }
+  if (rw && rh) {
+    requestAnimationFrame(() => { drawGrid(rw, rh); renderPieces(rw, rh); });
+  }
+}
+function showError(msg) { const e = document.getElementById('error-msg'); e.textContent = msg; e.classList.add('show'); }
+function clearResults() {
+  ['results-summary','canvas-card','pieces-card'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  document.getElementById('error-msg').classList.remove('show');
+  document.getElementById('hint-w').textContent = '';
+  document.getElementById('hint-h').textContent = '';
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PAGE 2 — Bin Planner
+// ══════════════════════════════════════════════════════════════════════════════
+let bins        = [];    // [{id, w, h, x, y, color}]
+let binCounter  = 0;
+let ghostBin    = null;  // {w, h, x, y}
+let binCellPx   = 50;    // pixels per grid unit (computed on draw)
+const BIN_COLORS = [
+  '#1e5fa8', '#1a7a30', '#8a1e99', '#c45a00',
+  '#99221e', '#008888', '#7a7a00', '#3a1a99',
+  '#006644', '#993a1a', '#004d99', '#993a88',
+];
+function binColor(i) { return BIN_COLORS[i % BIN_COLORS.length]; }
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchPage(n) {
+  document.getElementById('page-calc').style.display = n === 1 ? '' : 'none';
+  document.getElementById('page-bin').style.display  = n === 2 ? '' : 'none';
+  document.getElementById('tab-1').classList.toggle('active', n === 1);
+  document.getElementById('tab-2').classList.toggle('active', n === 2);
+  if (n === 2) {
+    refreshBinPage();
+    requestAnimationFrame(drawBinCanvas);
+  }
+}
+
+function refreshBinPage() {
+  const banner   = document.getElementById('bin-grid-banner');
+  const formCard = document.getElementById('bin-form-card');
+  const logCard  = document.getElementById('bin-log-card');
+  if (!gridState) {
+    banner.innerHTML   = '⚠️ Calculate a grid on the <strong>Calculator</strong> tab first.';
+    banner.className   = 'grid-banner warn';
+    formCard.style.display = 'none';
+    logCard.style.display  = 'none';
+    return;
+  }
+  const gs = gridState;
+  const sideInfo = gs.edgeMM < 0
+    ? `✂ ${Math.abs(gs.edgeMM)}mm trim/side`
+    : gs.edgeMM > 0 ? `${gs.edgeMM}mm gap/side` : '';
+  const rearInfo = gs.rearMM < 0
+    ? `✂ ${Math.abs(gs.rearMM)}mm rear trim · ½-bin zone at rear`
+    : gs.rearMM > 0 ? `${gs.rearMM}mm rear gap` : '';
+  const parts = [sideInfo, rearInfo].filter(Boolean);
+  banner.innerHTML = `
+    <span style="font-size:18px">📐</span>
+    <div>
+      <strong style="color:var(--cyan)">${gs.cols} × ${gs.rows}</strong>
+      <span style="color:var(--muted)"> cells · ${gs.gridX}×${gs.gridY} mm each</span>
+      ${parts.length ? `<span style="color:var(--border)"> &nbsp;·&nbsp; </span>
+        <span style="color:var(--yellow);font-size:11px">${parts.join(' &nbsp;·&nbsp; ')}</span>` : ''}
+    </div>`;
+  banner.className   = 'grid-banner';
+  formCard.style.display = '';
+  logCard.style.display  = '';
+}
+
+// ── Bin dim hint ───────────────────────────────────────────────────────────
+function onBinDimChange() {
+  if (!gridState) return;
+  const w = parseFloat(document.getElementById('bin-w').value);
+  const h = parseFloat(document.getElementById('bin-h').value);
+  const hint = document.getElementById('bin-size-hint');
+  if (w > 0 && h > 0) {
+    const phys = `${w * gridState.gridX} × ${h * gridState.gridY} mm`;
+    const rearNote = gridState.hasRearHalf && h === 0.5
+      ? ' — fits in rear ½-row' : '';
+    hint.textContent = `${phys}${rearNote}`;
+  } else {
+    hint.textContent = '';
+  }
+}
+
+// ── Add ghost bin ──────────────────────────────────────────────────────────
+function addGhostBin() {
+  if (!gridState) return;
+  const w = Math.round(parseFloat(document.getElementById('bin-w').value) * 2) / 2;
+  const h = Math.round(parseFloat(document.getElementById('bin-h').value) * 2) / 2;
+  if (!w || !h || w <= 0 || h <= 0) { flashError('Enter a valid Width and Height.'); return; }
+  if (w > gridState.cols) { flashError(`Width ${w} exceeds grid width ${gridState.cols}.`); return; }
+  if (h > gridState.effectiveRows + 0.01) { flashError(`Height ${h} exceeds usable depth (${gridState.effectiveRows}).`); return; }
+  // Whole-width-only rule: side trim means only whole-unit widths make sense
+  if (Math.round(w) !== w) { flashError('Width must be a whole number — side trim means only whole grid columns.'); return; }
+
+  ghostBin = { w, h, x: 0, y: 0 };
+  findFirstOpenSlot();
+
+  document.getElementById('bin-controls').style.display = '';
+  document.getElementById('bin-add-btn').style.display  = 'none';
+  document.getElementById('bin-placed-flash').style.display = 'none';
+  updateGhostStatus();
+  document.getElementById('bin-canvas-wrap').focus();
+  drawBinCanvas();
+}
+
+function findFirstOpenSlot() {
+  if (!ghostBin || !gridState) return;
+  const gs = gridState;
+  // Always scan from y=0 — any bin may start in the rear ½-row
+  const yStart = 0;
+  for (let gy = yStart; gy <= gs.effectiveRows - ghostBin.h + 0.01; gy += 0.5) {
+    for (let gx = 0; gx <= gs.cols - ghostBin.w + 0.01; gx += 1) {  // whole-unit x steps
+      ghostBin.x = Math.round(gx);
+      ghostBin.y = Math.round(gy * 2) / 2;
+      if (ghostIsValid()) return;
+    }
+  }
+  ghostBin.x = 0;
+  ghostBin.y = 0;  // fallback to top-left
+}
+
+function ghostIsValid() {
+  if (!ghostBin || !gridState) return false;
+  const gs = gridState;
+  if (ghostBin.x < 0 || ghostBin.y < 0) return false;
+  if (ghostBin.x + ghostBin.w > gs.cols + 0.001) return false;
+  if (ghostBin.y + ghostBin.h > gs.effectiveRows + 0.001) return false;
+  // ½-row (y < 0.5): any height bin may start here — the y+h check above ensures it fits
+  for (const b of bins) if (rectsOverlap(ghostBin, b)) return false;
+  return true;
+}
+function rectsOverlap(a, b) {
+  return !(a.x + a.w <= b.x + 0.001 || b.x + b.w <= a.x + 0.001 ||
+           a.y + a.h <= b.y + 0.001 || b.y + b.h <= a.y + 0.001);
+}
+
+function moveGhost(dx, dy) {
+  if (!ghostBin || !gridState) return;
+  const gs = gridState;
+  const maxY = gs.effectiveRows - ghostBin.h;
+  ghostBin.x = Math.round(Math.max(0, Math.min(gs.cols - ghostBin.w, ghostBin.x + dx)));  // whole units
+  const ny = Math.round(Math.max(0, Math.min(maxY, ghostBin.y + dy)) * 2) / 2;
+  ghostBin.y = ny;
+  updateGhostStatus();
+  drawBinCanvas();
+}
+
+function updateGhostStatus() {
+  const el = document.getElementById('bin-ghost-status');
+  const hp = document.getElementById('hint-ghost-pos');
+  if (!ghostBin) { el.style.display = 'none'; hp.textContent = ''; return; }
+  const valid = ghostIsValid();
+  el.style.display = '';
+  el.style.color   = valid ? 'var(--green)' : 'var(--red)';
+  let msg = valid ? '✓ Valid — Enter or double-click to place' : '✗ Overlapping or out of bounds';
+  if (!valid && gridState?.hasRearHalf && ghostBin.y < 0.5 && ghostBin.h > 0.5)
+    msg = '✗ Rear ½-row only fits bins with height ≤ 0.5';
+  el.textContent = msg;
+  const posLabel = ghostBin.y === 0 && gridState?.hasRearHalf ? 'rear ½-row' : `row ${Math.floor(ghostBin.y + 0.5)}`;
+  hp.textContent = `col ${ghostBin.x+1}–${ghostBin.x+ghostBin.w}, ${posLabel}`;
+}
+
+function placeBin() {
+  if (!ghostBin) return;
+  if (!ghostIsValid()) {
+    document.getElementById('bin-ghost-status').textContent = '✗ Can\'t place here — overlapping or out of bounds';
+    document.getElementById('bin-ghost-status').style.color = 'var(--red)';
+    return;
+  }
+  bins.push({
+    id:    binCounter + 1,
+    w:     ghostBin.w,
+    h:     ghostBin.h,
+    x:     ghostBin.x,
+    y:     ghostBin.y,
+    color: binColor(binCounter),
+  });
+  binCounter++;
+  ghostBin = null;
+
+  updateBinLog();
+  drawBinCanvas();
+
+  // Show controls reset
+  document.getElementById('bin-controls').style.display  = 'none';
+  document.getElementById('bin-add-btn').style.display   = '';
+  document.getElementById('bin-ghost-status').style.display = 'none';
+  document.getElementById('hint-ghost-pos').textContent  = '';
+
+  // Flash success
+  const flash = document.getElementById('bin-placed-flash');
+  flash.textContent   = `✓ Bin #${binCounter} placed! Enter dimensions for the next bin.`;
+  flash.style.display = '';
+  setTimeout(() => { flash.style.display = 'none'; }, 3000);
+
+  // Focus Width field for next bin
+  // Keep w/h populated for quick sequential placement of same-size bins
+  onBinDimChange();
+  document.getElementById('bin-add-btn').focus();
+}
+
+function cancelGhost() {
+  ghostBin = null;
+  document.getElementById('bin-controls').style.display  = 'none';
+  document.getElementById('bin-add-btn').style.display   = '';
+  document.getElementById('bin-ghost-status').style.display = 'none';
+  document.getElementById('hint-ghost-pos').textContent  = '';
+  drawBinCanvas();
+}
+
+function removeBin(id) {
+  bins = bins.filter(b => b.id !== id);
+  updateBinLog();
+  drawBinCanvas();
+}
+function clearAllBins() {
+  bins = []; binCounter = 0; ghostBin = null;
+  document.getElementById('bin-controls').style.display  = 'none';
+  document.getElementById('bin-add-btn').style.display   = '';
+  document.getElementById('bin-ghost-status').style.display = 'none';
+  document.getElementById('hint-ghost-pos').textContent  = '';
+  updateBinLog();
+  drawBinCanvas();
+}
+
+function flashError(msg) {
+  const flash = document.getElementById('bin-placed-flash');
+  flash.textContent   = '⚠️ ' + msg;
+  flash.style.display = '';
+  flash.style.background   = '#1a0000';
+  flash.style.borderColor  = '#5a0000';
+  flash.style.color        = 'var(--red)';
+  setTimeout(() => {
+    flash.style.display    = 'none';
+    flash.style.background = '';
+    flash.style.borderColor= '';
+    flash.style.color      = '';
+  }, 2500);
+}
+
+// ── Bin log ────────────────────────────────────────────────────────────────
+function updateBinLog() {
+  const empty    = document.getElementById('bin-log-empty');
+  const table    = document.getElementById('bin-log-table');
+  const coverage = document.getElementById('bin-coverage');
+
+  if (bins.length === 0) {
+    empty.style.display    = '';
+    table.style.display    = 'none';
+    coverage.style.display = 'none';
+    return;
+  }
+  empty.style.display    = 'none';
+  table.style.display    = '';
+  coverage.style.display = '';
+
+  const tbody = document.getElementById('bin-log-tbody');
+  tbody.innerHTML = bins.map(b => `
+    <tr>
+      <td>
+        <span class="bin-swatch" style="background:${b.color}"></span>
+        <strong>#${b.id}</strong>
+      </td>
+      <td class="piece-dims">${b.w} × ${b.h}</td>
+      <td style="color:var(--muted);font-size:11px;font-family:monospace">(${b.x}, ${b.y})</td>
+      <td style="text-align:right">
+        <button class="remove-btn" onclick="removeBin(${b.id})" title="Remove bin #${b.id}">✕</button>
+      </td>
+    </tr>`).join('');
+
+  if (!gridState) return;
+  const totalArea  = gridState.cols * gridState.effectiveRows;
+  const usedArea   = bins.reduce((s, b) => s + b.w * b.h, 0);
+  const pct        = Math.round(usedArea / totalArea * 100);
+  document.getElementById('coverage-fill').style.width = pct + '%';
+  document.getElementById('coverage-text').textContent = `${pct}% coverage`;
+  document.getElementById('coverage-detail').textContent =
+    `${usedArea.toFixed(1)} / ${totalArea} units  ·  ${bins.length} bin${bins.length !== 1 ? 's' : ''}`;
+}
+
+// ── Canvas click handling ──────────────────────────────────────────────────
+function _binCanvasOffsets() {
+  // Returns {sideW, topStripH, trimH} for the current gridState & binCellPx
+  const gs = gridState;
+  const edgeMM = gs.edgeMM, rearMM = gs.rearMM;
+  const sideW = edgeMM !== 0 ? Math.max(10, Math.abs(edgeMM) / gs.gridX * binCellPx) : 0;
+  const trimH = gs.hasRearHalf ? Math.max(5, Math.abs(rearMM) / gs.gridY * binCellPx) : 0;
+  const gapH  = (!gs.hasRearHalf && rearMM > 0) ? Math.max(5, rearMM / gs.gridY * binCellPx) : 0;
+  return { sideW, topStripH: trimH + gapH };
+}
+function onBinCanvasClick(e) {
+  if (!ghostBin || !gridState) return;
+  const wrap = document.getElementById('bin-canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const PAD  = 36;
+  const { sideW, topStripH } = _binCanvasOffsets();
+  const mx = (e.clientX - rect.left - PAD - sideW) / binCellPx;
+  const my = (e.clientY - rect.top  - PAD - topStripH) / binCellPx;
+  // Snap: x to whole unit (centering), y to 0.5 unit
+  const nx = Math.round(mx - ghostBin.w / 2);  // whole unit
+  const ny = Math.round((my - ghostBin.h / 2) * 2) / 2;
+  gridState.hasRearHalf;
+  ghostBin.x = Math.max(0, Math.min(gridState.cols - ghostBin.w, nx));
+  ghostBin.y = Math.round(Math.max(0, Math.min(gridState.effectiveRows - ghostBin.h, ny)) * 2) / 2;
+  updateGhostStatus();
+  drawBinCanvas();
+  document.getElementById('bin-canvas-wrap').focus();
+}
+function onBinCanvasDblClick(e) {
+  if (!ghostBin) return;
+  onBinCanvasClick(e);
+  placeBin();
+}
+
+// ── Draw bin canvas ────────────────────────────────────────────────────────
+function drawBinCanvas() {
+  if (!gridState) return;
+  const canvas = document.getElementById('bin-canvas');
+  const ctx    = canvas.getContext('2d');
+  const dpr    = window.devicePixelRatio || 1;
+  const gs     = gridState;
+  const COLS   = gs.cols;
+  const PAD    = 36;
+
+  const wrap   = document.getElementById('bin-canvas-wrap');
+  const availW = Math.max(200, (wrap.offsetWidth || 700) - PAD * 2 - 8);
+  // Reserve space for side strips when computing cell size
+  const sideApprox = gs.edgeMM !== 0 ? 14 : 0;
+  binCellPx = Math.max(20, Math.min(72, Math.floor((availW - 2 * sideApprox) / COLS)));
+
+  // ── Strip sizes (proportional to physical mm, minimum visible) ──
+  const edgeMM = gs.edgeMM, rearMM = gs.rearMM;
+  const sideW  = edgeMM !== 0 ? Math.max(10, Math.abs(edgeMM) / gs.gridX * binCellPx) : 0;
+  const trimH  = gs.hasRearHalf ? Math.max(5, Math.abs(rearMM) / gs.gridY * binCellPx) : 0;
+  const gapH   = (!gs.hasRearHalf && rearMM > 0) ? Math.max(5, rearMM / gs.gridY * binCellPx) : 0;
+  const topStripH = trimH + gapH;
+
+  const effectiveRows = gs.effectiveRows;
+  const gridW = COLS * binCellPx;
+  const gridH = effectiveRows * binCellPx;
+  const totalW = PAD + sideW + gridW + sideW + PAD;
+  const totalH = PAD + topStripH + gridH + PAD;
+
+  canvas.width  = totalW * dpr; canvas.height = totalH * dpr;
+  canvas.style.width  = totalW + 'px'; canvas.style.height = totalH + 'px';
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, totalW, totalH);
+
+  // grid unit → canvas pixel (grid origin = top-left of placeable area)
+  const cx = x => PAD + sideW + x * binCellPx;
+  const cy = y => PAD + topStripH + y * binCellPx;
+
+  // ── Overall background ──
+  ctx.fillStyle = '#080c10';
+  ctx.fillRect(PAD, PAD, totalW - 2*PAD, totalH - 2*PAD);
+
+  // ── Top strip (rear trim or rear gap) ──
+  if (topStripH > 0) {
+    const isTrimStrip = gs.hasRearHalf;
+    ctx.fillStyle = isTrimStrip ? '#1a0c0c' : '#0d1220';
+    ctx.fillRect(PAD, PAD, totalW - 2*PAD, topStripH);
+    // Diagonal hatch
+    ctx.save();
+    ctx.beginPath(); ctx.rect(PAD, PAD, totalW - 2*PAD, topStripH); ctx.clip();
+    ctx.strokeStyle = isTrimStrip ? 'rgba(120,40,40,0.35)' : 'rgba(40,60,120,0.35)';
+    ctx.lineWidth = 1;
+    for (let x = PAD - topStripH; x < totalW - PAD + topStripH; x += 9) {
+      ctx.beginPath(); ctx.moveTo(x, PAD); ctx.lineTo(x + topStripH, PAD + topStripH); ctx.stroke();
+    }
+    ctx.restore();
+    // Label
+    const tsLabel = isTrimStrip ? `✂ ${Math.abs(rearMM)}mm rear trim` : `${rearMM}mm rear gap`;
+    ctx.fillStyle = isTrimStrip ? '#7a3a3a' : '#3a5a8a';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(tsLabel, PAD + (totalW - 2*PAD) / 2, PAD + topStripH / 2);
+  }
+
+  // ── Side strips (left + right) ──
+  if (sideW > 0) {
+    const isTrimSide = edgeMM < 0;
+    const sColor = isTrimSide ? '#1a0c0c' : '#0d1220';
+    const hColor = isTrimSide ? 'rgba(120,40,40,0.35)' : 'rgba(40,60,120,0.35)';
+    const sLabel = isTrimSide ? `✂ ${Math.abs(edgeMM)}mm` : `${edgeMM}mm gap`;
+    [[PAD, sideW], [PAD + sideW + gridW, sideW]].forEach(([sx, sw]) => {
+      ctx.fillStyle = sColor;
+      ctx.fillRect(sx, PAD + topStripH, sw, gridH);
+      // Diagonal hatch
+      ctx.save();
+      ctx.beginPath(); ctx.rect(sx, PAD + topStripH, sw, gridH); ctx.clip();
+      ctx.strokeStyle = hColor; ctx.lineWidth = 1;
+      for (let y = PAD + topStripH - sw; y < PAD + topStripH + gridH + sw; y += 9) {
+        ctx.beginPath(); ctx.moveTo(sx, y); ctx.lineTo(sx + sw, y - sw); ctx.stroke();
+      }
+      ctx.restore();
+      // Rotated label
+      if (sideW >= 14 && gridH > 30) {
+        ctx.save();
+        ctx.translate(sx + sw / 2, PAD + topStripH + gridH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillStyle = isTrimSide ? '#7a3a3a' : '#3a5a8a';
+        ctx.font = '9px -apple-system, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(sLabel, 0, 0);
+        ctx.restore();
+      }
+    });
+    // Yellow dashed boundary between strips and grid (mirrors Page 1 zone boundary)
+    ctx.strokeStyle = '#c9a22788'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(cx(0),    cy(0)); ctx.lineTo(cx(0),    cy(effectiveRows)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx(COLS), cy(0)); ctx.lineTo(cx(COLS), cy(effectiveRows)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if (topStripH > 0 && rearMM > 0) {
+    // Yellow boundary at top of grid rows (gap case)
+    ctx.strokeStyle = '#c9a22788'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(PAD, cy(0)); ctx.lineTo(totalW - PAD, cy(0)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ── Grid background ──
+  ctx.fillStyle = '#080c10';
+  ctx.fillRect(cx(0), cy(0), gridW, gridH);
+
+  // ── Rear half-row zone ──
+  if (gs.hasRearHalf) {
+    ctx.fillStyle = 'rgba(25, 45, 75, 0.75)';
+    ctx.fillRect(cx(0), cy(0), gridW, 0.5 * binCellPx);
+    // Separator line (drawn again after grid lines)
+  }
+
+  // ── Half-unit dots ──
+  if (binCellPx >= 28) {
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    const rOff = gs.hasRearHalf ? 0.5 : 0;
+    for (let c = 1; c < COLS * 2; c++) {
+      for (let r = 0; r <= (effectiveRows - rOff) * 2; r++) {
+        if (c % 2 === 0 && r % 2 === 0) continue;
+        ctx.beginPath();
+        ctx.arc(cx(c * 0.5), cy(rOff + r * 0.5), 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  // ── Grid lines ──
+  ctx.strokeStyle = 'rgba(60,90,120,0.5)'; ctx.lineWidth = 0.5;
+  for (let c = 0; c <= COLS; c++) {
+    ctx.beginPath(); ctx.moveTo(cx(c), cy(0)); ctx.lineTo(cx(c), cy(effectiveRows)); ctx.stroke();
+  }
+  const rLineStart = gs.hasRearHalf ? 0.5 : 1;
+  for (let r = rLineStart; r < effectiveRows - 0.01; r += 1) {
+    ctx.beginPath(); ctx.moveTo(cx(0), cy(r)); ctx.lineTo(cx(COLS), cy(r)); ctx.stroke();
+  }
+  // ── Half-row separator (drawn on top of grid lines) ──
+  if (gs.hasRearHalf) {
+    ctx.strokeStyle = '#3a6ea8'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(cx(0), cy(0.5)); ctx.lineTo(cx(COLS), cy(0.5)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#5a8fc0';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`½ row  (${Math.round(gs.gridY - Math.abs(rearMM))}mm)`, cx(COLS / 2), cy(0.25));
+  }
+
+  // ── Column / Row number labels ──
+  const labelFs = Math.max(8, Math.min(11, binCellPx * 0.22));
+  ctx.fillStyle  = '#4a5a6a';
+  ctx.font       = `${labelFs}px -apple-system, sans-serif`;
+  ctx.textAlign  = 'center'; ctx.textBaseline = 'middle';
+  for (let c = 0; c < COLS; c++)
+    ctx.fillText(c + 1, cx(c) + binCellPx / 2, cy(0) - 14);
+  ctx.textAlign = 'right';
+  const rowLabelStart = gs.hasRearHalf ? 0.5 : 0;
+  const rowCount      = gs.rows - (gs.hasRearHalf ? 1 : 0);
+  for (let r = 0; r < rowCount; r++)
+    ctx.fillText(r + 1, cx(0) - 6, cy(rowLabelStart + r) + binCellPx / 2);
+  if (gs.hasRearHalf) {
+    ctx.fillStyle = '#3a6ea8';
+    ctx.fillText('½', cx(0) - 6, cy(0.25));
+  }
+
+  // ── Placed bins ──
+  const GAP = 2;
+  for (const b of bins) {
+    const bx = cx(b.x), by = cy(b.y);
+    const bw = b.w * binCellPx, bh = b.h * binCellPx;
+
+    // Shadow
+    ctx.shadowColor  = b.color + '44';
+    ctx.shadowBlur   = 8;
+
+    // Fill (semi-transparent)
+    ctx.fillStyle = b.color + 'bb';
+    ctx.fillRect(bx + GAP, by + GAP, bw - GAP * 2, bh - GAP * 2);
+    ctx.shadowBlur = 0;
+
+    // Border
+    ctx.strokeStyle = b.color;
+    ctx.lineWidth   = 2;
+    ctx.strokeRect(bx + GAP, by + GAP, bw - GAP * 2, bh - GAP * 2);
+
+    // Bin number (large, centered)
+    const numFs = Math.max(10, Math.min(32, Math.min(bw, bh) * 0.38));
+    ctx.fillStyle    = '#ffffff';
+    ctx.font         = `900 ${numFs}px -apple-system, sans-serif`;
+    ctx.textAlign    = 'center'; ctx.textBaseline = 'middle';
+    const midX = bx + bw / 2, midY = by + bh / 2;
+    const hasRoom = bw > 42 && bh > 32;
+    ctx.fillText(`#${b.id}`, midX, midY - (hasRoom ? numFs * 0.3 : 0));
+
+    // W×H dims label below number
+    if (hasRoom) {
+      const dimFs = Math.max(8, numFs * 0.45);
+      ctx.font      = `600 ${dimFs}px -apple-system, sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.fillText(`${b.w}×${b.h}`, midX, midY + numFs * 0.4);
+    }
+  }
+
+  // ── Ghost bin ──
+  if (ghostBin) {
+    const valid = ghostIsValid();
+    const gx2   = cx(ghostBin.x), gy2 = cy(ghostBin.y);
+    const gw    = ghostBin.w * binCellPx, gh = ghostBin.h * binCellPx;
+
+    ctx.fillStyle   = valid ? 'rgba(63,185,80,0.20)' : 'rgba(248,81,73,0.20)';
+    ctx.fillRect(gx2 + GAP, gy2 + GAP, gw - GAP * 2, gh - GAP * 2);
+
+    ctx.strokeStyle = valid ? '#3fb950' : '#f85149';
+    ctx.lineWidth   = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.strokeRect(gx2 + GAP, gy2 + GAP, gw - GAP * 2, gh - GAP * 2);
+    ctx.setLineDash([]);
+
+    // Label inside ghost
+    const gfs = Math.max(10, Math.min(22, Math.min(gw, gh) * 0.28));
+    ctx.fillStyle    = valid ? '#3fb950' : '#f85149';
+    ctx.font         = `700 ${gfs}px -apple-system, sans-serif`;
+    ctx.textAlign    = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${ghostBin.w}×${ghostBin.h}`, gx2 + gw / 2, gy2 + gh / 2);
+
+    // "NEXT" label above
+    if (binCellPx >= 28) {
+      ctx.font      = `600 10px -apple-system, sans-serif`;
+      ctx.fillStyle = valid ? '#3fb95099' : '#f8514999';
+      ctx.fillText(`#${binCounter + 1}`, gx2 + gw / 2, gy2 + gh / 2 + gfs * 0.7 + 4);
+    }
+  }
+
+  // ── Grid border ──
+  ctx.strokeStyle = '#3a6ea8'; ctx.lineWidth = 2; ctx.setLineDash([]);
+  ctx.strokeRect(cx(0), cy(0), gridW, gridH);
+  // ── Outer drawer boundary (includes side + top strips) ──
+  if (sideW > 0 || topStripH > 0) {
+    ctx.strokeStyle = '#2a3a5a'; ctx.lineWidth = 1;
+    ctx.strokeRect(PAD, PAD, totalW - 2*PAD, totalH - 2*PAD);
+  }
+}
+
+// ── Keyboard handler ───────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  const onPage2 = document.getElementById('page-bin').style.display !== 'none';
+  if (onPage2 && ghostBin) {
+    const step = e.shiftKey ? 1 : 0.5;
+    switch (e.key) {
+      case 'ArrowLeft':  e.preventDefault(); moveGhost(-step, 0); return;
+      case 'ArrowRight': e.preventDefault(); moveGhost( step, 0); return;
+      case 'ArrowUp':    e.preventDefault(); moveGhost(0, -step); return;
+      case 'ArrowDown':  e.preventDefault(); moveGhost(0,  step); return;
+      case 'Enter':      e.preventDefault(); placeBin();          return;
+      case 'Escape':     e.preventDefault(); cancelGhost();       return;
+    }
+  }
+  if (!onPage2 && e.key === 'Enter') calculate();
+});
+
+// Redraw bin canvas on resize
+window.addEventListener('resize', () => {
+  if (document.getElementById('page-bin').style.display !== 'none') drawBinCanvas();
+  if (document.getElementById('canvas-card') &&
+      !document.getElementById('canvas-card').classList.contains('hidden')) {
+    // recalc on resize
+  }
+});
+</script>
+</body>
+</html>
