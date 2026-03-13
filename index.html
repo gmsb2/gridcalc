@@ -1022,8 +1022,7 @@ function addGhostBin() {
   if (w !== 0.5 && !Number.isInteger(w)) { flashError('Width must be 0.5 or a whole number.'); return; }
   // Height must be 0.5 or a positive integer
   if (h !== 0.5 && !Number.isInteger(h)) { flashError('Height must be 0.5 or a whole number.'); return; }
-  // ½-height bins only valid when a rear ½-row exists
-  if (h === 0.5 && !gridState.hasRearHalf) { flashError('No rear ½-row — adjust drawer depth to create one.'); return; }
+
 
   ghostBin = { w, h, x: 0, y: 0 };
   findFirstOpenSlot();
@@ -1061,11 +1060,6 @@ function ghostIsValid() {
   if (ghostBin.x < 0 || ghostBin.y < 0) return false;
   if (ghostBin.x + ghostBin.w > gs.cols + 0.001) return false;
   if (ghostBin.y + ghostBin.h > gs.effectiveRows + 0.001) return false;
-  // ½-height bins: only valid in the rear ½-row (y=0)
-  if (ghostBin.h === 0.5) {
-    if (!gs.hasRearHalf) return false;
-    if (ghostBin.y > 0.001) return false;
-  }
   // Integer-height bins: cannot straddle the rear ½-row boundary
   if (Number.isInteger(ghostBin.h) && gs.hasRearHalf && ghostBin.y < 0.5 - 0.001) return false;
   // Integer-height bins: x must be integer — no straddling a ½-width column boundary
@@ -1098,9 +1092,9 @@ function updateGhostStatus() {
   el.style.color   = valid ? 'var(--green)' : 'var(--red)';
   let msg = valid ? '✓ Valid — Enter or double-click to place' : '✗ Overlapping or out of bounds';
   if (!valid && gridState?.hasRearHalf && ghostBin.y < 0.5 - 0.001 && Number.isInteger(ghostBin.h))
-    msg = '✗ Integer-height bins cannot start in the rear ½-row';
+    msg = '✗ Whole-height bins cannot start in the rear ½-row';
   else if (!valid && Number.isInteger(ghostBin.h) && !Number.isInteger(Math.round(ghostBin.x * 100) / 100))
-    msg = '✗ Integer-height bins must be at whole-column x positions';
+    msg = '✗ Whole-height bins must start at whole-column positions';
   el.textContent = msg;
   const posLabel = ghostBin.y === 0 && gridState?.hasRearHalf ? 'rear ½-row' : `row ${Math.floor(ghostBin.y + 0.5)}`;
   hp.textContent = `col ${ghostBin.x+1}–${ghostBin.x+ghostBin.w}, ${posLabel}`;
