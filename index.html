@@ -1061,8 +1061,9 @@ function ghostIsValid() {
   if (ghostBin.y + ghostBin.h > gs.effectiveRows + 0.001) return false;
   // Integer-height bins: cannot straddle the rear ½-row boundary
   if (Number.isInteger(ghostBin.h) && gs.hasRearHalf && ghostBin.y < 0.5 - 0.001) return false;
-  // Integer-height bins: x must be integer — no straddling a ½-width column boundary
-  if (Number.isInteger(ghostBin.h) && !Number.isInteger(Math.round(ghostBin.x * 100) / 100)) return false;
+  // Integer-width + integer-height bins: x must be integer
+  // (x.5-width bins may have integer OR half-integer x — that's the R vs L distinction)
+  if (Number.isInteger(ghostBin.h) && Number.isInteger(ghostBin.w) && !Number.isInteger(Math.round(ghostBin.x * 100) / 100)) return false;
   for (const b of bins) if (rectsOverlap(ghostBin, b)) return false;
   return true;
 }
@@ -1092,8 +1093,8 @@ function updateGhostStatus() {
   let msg = valid ? '✓ Valid — Enter or double-click to place' : '✗ Overlapping or out of bounds';
   if (!valid && gridState?.hasRearHalf && ghostBin.y < 0.5 - 0.001 && Number.isInteger(ghostBin.h))
     msg = '✗ Whole-height bins cannot start in the rear ½-row';
-  else if (!valid && Number.isInteger(ghostBin.h) && !Number.isInteger(Math.round(ghostBin.x * 100) / 100))
-    msg = '✗ Whole-height bins must start at whole-column positions';
+  else if (!valid && Number.isInteger(ghostBin.h) && Number.isInteger(ghostBin.w) && !Number.isInteger(Math.round(ghostBin.x * 100) / 100))
+    msg = '✗ Whole-width + whole-height bins must start at whole-column positions';
   el.textContent = msg;
   const posLabel = ghostBin.y === 0 && gridState?.hasRearHalf ? 'rear ½-row' : `row ${Math.floor(ghostBin.y + 0.5)}`;
   hp.textContent = `col ${ghostBin.x+1}–${ghostBin.x+ghostBin.w}, ${posLabel}`;
@@ -1200,7 +1201,7 @@ function updateBinLog() {
         <span class="bin-swatch" style="background:${b.color}"></span>
         <strong>#${b.id}</strong>
       </td>
-      <td class="piece-dims">${b.w} × ${b.h}</td>
+      <td class="piece-dims">${binLabel(b.w, b.h, b.x)}</td>
       <td style="color:var(--muted);font-size:11px;font-family:monospace">(${b.x}, ${b.y})</td>
       <td style="text-align:right">
         <button class="remove-btn" onclick="removeBin(${b.id})" title="Remove bin #${b.id}">✕</button>
@@ -1249,6 +1250,16 @@ function onBinCanvasDblClick(e) {
   if (!ghostBin) return;
   onBinCanvasClick(e);
   placeBin();
+}
+
+// ── Bin label helper ───────────────────────────────────────────────────────
+// For x.5-width bins, append L (half on left, half-integer x) or R (half on right, integer x)
+function binLabel(w, h, x) {
+  if (!Number.isInteger(w)) {
+    const side = Number.isInteger(Math.round(x * 100) / 100) ? 'R' : 'L';
+    return `${w}${side}\u00d7${h}`;
+  }
+  return `${w}\u00d7${h}`;
 }
 
 // ── Draw bin canvas ────────────────────────────────────────────────────────
@@ -1453,7 +1464,7 @@ function drawBinCanvas() {
       const dimFs = Math.max(8, numFs * 0.45);
       ctx.font      = `600 ${dimFs}px -apple-system, sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.65)';
-      ctx.fillText(`${b.w}×${b.h}`, midX, midY + numFs * 0.4);
+      ctx.fillText(binLabel(b.w, b.h, b.x), midX, midY + numFs * 0.4);
     }
   }
 
@@ -1477,7 +1488,7 @@ function drawBinCanvas() {
     ctx.fillStyle    = valid ? '#3fb950' : '#f85149';
     ctx.font         = `700 ${gfs}px -apple-system, sans-serif`;
     ctx.textAlign    = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(`${ghostBin.w}×${ghostBin.h}`, gx2 + gw / 2, gy2 + gh / 2);
+    ctx.fillText(binLabel(ghostBin.w, ghostBin.h, ghostBin.x), gx2 + gw / 2, gy2 + gh / 2);
 
     // "NEXT" label above
     if (binCellPx >= 28) {
