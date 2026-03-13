@@ -298,14 +298,14 @@
   <div class="grid-size-row">
     <div class="field-group">
       <label id="grid-x-label">Grid Size (mm)</label>
-      <input type="number" id="grid-x" value="50" min="1" step="0.1" oninput="onGridXChange()">
+      <input type="number" id="grid-x" value="42" min="1" step="0.1" oninput="onGridXChange()">
     </div>
     <label class="sym-toggle">
       <input type="checkbox" id="sym-check" checked onchange="onSymChange()"> Symmetric
     </label>
     <div class="field-group" id="grid-y-group" style="display:none">
       <label>Grid Depth (mm)</label>
-      <input type="number" id="grid-y" value="50" min="1" step="0.1">
+      <input type="number" id="grid-y" value="42" min="1" step="0.1">
     </div>
   </div>
   <div class="section-label">Input Units</div>
@@ -505,7 +505,7 @@ let gridState   = null;  // set after a successful calculate() with both dims
 function setPreset(p) {
   ['gf','mb','cu'].forEach(id => document.getElementById('preset-'+id).classList.remove('active'));
   document.getElementById('preset-'+{gridfinity:'gf',mbhome:'mb',custom:'cu'}[p]).classList.add('active');
-  if (p === 'gridfinity') { document.getElementById('grid-x').value = 50; document.getElementById('grid-y').value = 50; }
+  if (p === 'gridfinity') { document.getElementById('grid-x').value = 42; document.getElementById('grid-y').value = 42; }
   else if (p === 'mbhome')  { document.getElementById('grid-x').value = 40; document.getElementById('grid-y').value = 40; }
   clearResults();
 }
