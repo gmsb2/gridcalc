@@ -1018,10 +1018,9 @@ function addGhostBin() {
   if (!w || !h || w <= 0 || h <= 0) { flashError('Enter a valid Width and Height.'); return; }
   if (w > gridState.cols) { flashError(`Width ${w} exceeds grid width ${gridState.cols}.`); return; }
   if (h > gridState.effectiveRows + 0.01) { flashError(`Height ${h} exceeds usable depth (${gridState.effectiveRows}).`); return; }
-  // Width must be 0.5 or a positive integer
-  if (w !== 0.5 && !Number.isInteger(w)) { flashError('Width must be 0.5 or a whole number.'); return; }
-  // Height must be 0.5 or a positive integer
-  if (h !== 0.5 && !Number.isInteger(h)) { flashError('Height must be 0.5 or a whole number.'); return; }
+  // Width and height must be multiples of 0.5
+  if (!Number.isInteger(w * 2)) { flashError('Width must be a multiple of 0.5 (e.g. 0.5, 1, 1.5, 2…)'); return; }
+  if (!Number.isInteger(h * 2)) { flashError('Height must be a multiple of 0.5 (e.g. 0.5, 1, 1.5, 2…)'); return; }
 
 
   ghostBin = { w, h, x: 0, y: 0 };
@@ -1038,8 +1037,8 @@ function addGhostBin() {
 function findFirstOpenSlot() {
   if (!ghostBin || !gridState) return;
   const gs = gridState;
-  // x step: 0.5 for ½-width bins, 1 for integer-width
-  const xStep  = ghostBin.w === 0.5 ? 0.5 : 1;
+  // x step: 0.5 for any non-integer width, 1 for integer-width
+  const xStep  = Number.isInteger(ghostBin.w) ? 1 : 0.5;
   // integer-height bins can't start in the ½-row
   const yStart = (gs.hasRearHalf && Number.isInteger(ghostBin.h)) ? 0.5 : 0;
   // Scan bottom-left → top-right (bottom = front of drawer, large y first)
@@ -1076,7 +1075,7 @@ function moveGhost(dx, dy) {
   if (!ghostBin || !gridState) return;
   const gs = gridState;
   const maxY = gs.effectiveRows - ghostBin.h;
-  const xSnapMult = ghostBin.w === 0.5 ? 2 : 1;
+  const xSnapMult = Number.isInteger(ghostBin.w) ? 1 : 2;
   ghostBin.x = Math.round(Math.max(0, Math.min(gs.cols - ghostBin.w, ghostBin.x + dx)) * xSnapMult) / xSnapMult;
   ghostBin.y = Math.round(Math.max(0, Math.min(maxY, ghostBin.y + dy)) * 2) / 2;
   updateGhostStatus();
@@ -1236,8 +1235,8 @@ function onBinCanvasClick(e) {
   const { sideW, topStripH } = _binCanvasOffsets();
   const mx = (e.clientX - rect.left - PAD - sideW) / binCellPx;
   const my = (e.clientY - rect.top  - PAD - topStripH) / binCellPx;
-  // x snaps to 0.5 steps for ½-width bins, integer steps for others
-  const xSnapMult = ghostBin.w === 0.5 ? 2 : 1;
+  // x snaps to 0.5 steps for non-integer widths, integer steps for whole-width bins
+  const xSnapMult = Number.isInteger(ghostBin.w) ? 1 : 2;
   const nx = Math.round((mx - ghostBin.w / 2) * xSnapMult) / xSnapMult;
   const ny = Math.round((my - ghostBin.h / 2) * 2) / 2;
   ghostBin.x = Math.round(Math.max(0, Math.min(gridState.cols - ghostBin.w, nx)) * xSnapMult) / xSnapMult;
