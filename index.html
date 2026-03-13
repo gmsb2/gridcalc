@@ -1077,8 +1077,9 @@ function moveGhost(dx, dy) {
   const gs = gridState;
   const maxY = gs.effectiveRows - ghostBin.h;
   const xSnapMult = Number.isInteger(ghostBin.w) ? 1 : 2;
+  const ySnapMult = Number.isInteger(ghostBin.h) ? 1 : 2;
   ghostBin.x = Math.round(Math.max(0, Math.min(gs.cols - ghostBin.w, ghostBin.x + dx)) * xSnapMult) / xSnapMult;
-  ghostBin.y = Math.round(Math.max(0, Math.min(maxY, ghostBin.y + dy)) * 2) / 2;
+  ghostBin.y = Math.round(Math.max(0, Math.min(maxY, ghostBin.y + dy)) * ySnapMult) / ySnapMult;
   updateGhostStatus();
   drawBinCanvas();
 }
@@ -1201,7 +1202,7 @@ function updateBinLog() {
         <span class="bin-swatch" style="background:${b.color}"></span>
         <strong>#${b.id}</strong>
       </td>
-      <td class="piece-dims">${binLabel(b.w, b.h, b.x)}</td>
+      <td class="piece-dims">${binLabel(b.w, b.h, b.x, b.y)}</td>
       <td style="color:var(--muted);font-size:11px;font-family:monospace">(${b.x}, ${b.y})</td>
       <td style="text-align:right">
         <button class="remove-btn" onclick="removeBin(${b.id})" title="Remove bin #${b.id}">✕</button>
@@ -1253,13 +1254,15 @@ function onBinCanvasDblClick(e) {
 }
 
 // ── Bin label helper ───────────────────────────────────────────────────────
-// For x.5-width bins, append L (half on left, half-integer x) or R (half on right, integer x)
-function binLabel(w, h, x) {
-  if (!Number.isInteger(w)) {
-    const side = Number.isInteger(Math.round(x * 100) / 100) ? 'R' : 'L';
-    return `${w}${side}\u00d7${h}`;
-  }
-  return `${w}\u00d7${h}`;
+// x.5 width → appends R (half on right, integer x) or L (half on left, half-integer x)
+// x.5 height → appends F (half at front/bottom, integer y) or B (half at back/top, half-integer y)
+function binLabel(w, h, x, y) {
+  const isIntX = v => Number.isInteger(Math.round(v * 100) / 100);
+  let wPart = `${w}`;
+  let hPart = `${h}`;
+  if (!Number.isInteger(w)) wPart = `${w}${isIntX(x) ? 'R' : 'L'}`;
+  if (!Number.isInteger(h)) hPart = `${h}${isIntX(y) ? 'F' : 'B'}`;
+  return `${wPart}\u00d7${hPart}`;
 }
 
 // ── Draw bin canvas ────────────────────────────────────────────────────────
@@ -1464,7 +1467,7 @@ function drawBinCanvas() {
       const dimFs = Math.max(8, numFs * 0.45);
       ctx.font      = `600 ${dimFs}px -apple-system, sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.65)';
-      ctx.fillText(binLabel(b.w, b.h, b.x), midX, midY + numFs * 0.4);
+      ctx.fillText(binLabel(b.w, b.h, b.x, b.y), midX, midY + numFs * 0.4);
     }
   }
 
@@ -1488,7 +1491,7 @@ function drawBinCanvas() {
     ctx.fillStyle    = valid ? '#3fb950' : '#f85149';
     ctx.font         = `700 ${gfs}px -apple-system, sans-serif`;
     ctx.textAlign    = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(binLabel(ghostBin.w, ghostBin.h, ghostBin.x), gx2 + gw / 2, gy2 + gh / 2);
+    ctx.fillText(binLabel(ghostBin.w, ghostBin.h, ghostBin.x, ghostBin.y), gx2 + gw / 2, gy2 + gh / 2);
 
     // "NEXT" label above
     if (binCellPx >= 28) {
@@ -1512,12 +1515,14 @@ function drawBinCanvas() {
 document.addEventListener('keydown', e => {
   const onPage2 = document.getElementById('page-bin').style.display !== 'none';
   if (onPage2 && ghostBin) {
-    const step = e.shiftKey ? 1 : 0.5;
+    // Step size matches bin dimension type: integer bins move by 1, x.5 bins by 0.5
+    const xStep = Number.isInteger(ghostBin.w) ? 1 : 0.5;
+    const yStep = Number.isInteger(ghostBin.h) ? 1 : 0.5;
     switch (e.key) {
-      case 'ArrowLeft':  e.preventDefault(); moveGhost(-step, 0); return;
-      case 'ArrowRight': e.preventDefault(); moveGhost( step, 0); return;
-      case 'ArrowUp':    e.preventDefault(); moveGhost(0, -step); return;
-      case 'ArrowDown':  e.preventDefault(); moveGhost(0,  step); return;
+      case 'ArrowLeft':  e.preventDefault(); moveGhost(-xStep, 0);     return;
+      case 'ArrowRight': e.preventDefault(); moveGhost( xStep, 0);     return;
+      case 'ArrowUp':    e.preventDefault(); moveGhost(0,     -yStep); return;
+      case 'ArrowDown':  e.preventDefault(); moveGhost(0,      yStep); return;
       case 'Enter':      e.preventDefault(); placeBin();          return;
       case 'Escape':     e.preventDefault(); cancelGhost();       return;
     }
